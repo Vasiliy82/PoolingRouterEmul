@@ -1,14 +1,63 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
-	"github.com/PoolingRouterEmul/internal/model"
+	"github.com/Vasiliy82/PoolingRouterEmul/internal/config"
+	"github.com/Vasiliy82/PoolingRouterEmul/internal/logger"
+	"github.com/Vasiliy82/PoolingRouterEmul/internal/model"
+	"github.com/Vasiliy82/PoolingRouterEmul/internal/server"
+	"github.com/Vasiliy82/PoolingRouterEmul/internal/tracer"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
+
+	ctx := context.Background()
+
+	defer func() {
+		_ = logger.Logger().Sync()
+	}()
+
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	cfg, err := config.LoadAll()
+	if err != nil {
+		logger.Logger().Fatalf("ошибка загрузки конфигурации: %v", err)
+	}
+
+	logLevel := zapcore.ErrorLevel
+
+	if errParse := logLevel.UnmarshalText([]byte(cfg.App.LogLevel)); errParse != nil {
+		logger.Logger().Errorf("ошибка получения значения LogLevel: %v", errParse)
+	}
+
+	logger.SetLevel(logLevel)
+
+	httpTracerShutdown, err := tracer.InitHTTPProvider(cfg.App.TraceURL, cfg.App.AppName(), int64(os.Getpid()))
+	if err != nil {
+		logger.Logger().Fatalf("Ошибка инициализации OpenTrace: %v", err)
+	}
+
+	defer func() {
+		sCtx := context.Background()
+		if err := httpTracerShutdown(sCtx); err != nil {
+			log.Fatalf("Ошибка остановки OpenTrace (HTTP TracerProvider): %v", err)
+		}
+	}()
+
+	server := server.NewServer(cfg.App)
+	server.Run()
+
+	<-ctx.Done()
 
 	request_arr := []byte(`{
 		"traffic_jams":true,
@@ -185,7 +234,7 @@ func main() {
 
 	var request model.Request
 
-	err := json.Unmarshal(request_arr, &request)
+	err = json.Unmarshal(request_arr, &request)
 
 	if err != nil {
 		fmt.Printf("error: %s", err)
