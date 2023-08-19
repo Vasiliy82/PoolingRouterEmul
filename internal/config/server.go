@@ -8,7 +8,7 @@ import (
 
 const AppName string = "PoolingRouterEmul"
 
-type App struct {
+type Server struct {
 	Domain   string `envconfig:"DOMAIN"`
 	TraceURL string `envconfig:"TRACE_URL"`
 	LogLevel string `envconfig:"LOG_LEVEL" default:"WARN"`
@@ -19,8 +19,8 @@ type App struct {
 	Port         string        `envconfig:"PORT" default:":80"`
 }
 
-func loadApp(appPrefix string) (*App, error) {
-	var a App
+func loadServer(appPrefix string) (*Server, error) {
+	var a Server
 
 	err := envconfig.Process(appPrefix, &a)
 	if err != nil {
@@ -37,6 +37,6 @@ func loadApp(appPrefix string) (*App, error) {
 	return &a, nil
 }
 
-func (a *App) AppName() string {
+func (a *Server) AppName() string {
 	return a.appName
 }

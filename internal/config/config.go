@@ -9,16 +9,16 @@ const appNamePrefix = "POOLING_RTR"
 var approveDebugNoAuth bool // = true
 
 type Config struct {
-	App *App
+	Server *Server
 }
 
 func LoadAll() (*Config, error) {
-	confApp, err := loadApp(appNamePrefix)
+	confApp, err := loadServer(appNamePrefix)
 	if err != nil {
 		return nil, errors.Wrap(err, "error loadApp")
 	}
 
 	return &Config{
-		App: confApp,
+		Server: confApp,
 	}, nil
 }

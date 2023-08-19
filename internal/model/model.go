@@ -1,5 +1,7 @@
 package model
 
+import "github.com/google/uuid"
+
 type Request struct {
 	TrafficJams bool `json:"traffic_jams"`
 	Couriers    []struct {
@@ -82,4 +84,11 @@ type Results struct {
 		} `json:"dropped_locations"`
 		Routes []ResultRoute `json:"routes"`
 	} `json:"data"`
+}
+
+func NewResponse() *Response {
+	result := Response{
+		IDRequest: uuid.New().String(),
+	}
+	return &result
 }

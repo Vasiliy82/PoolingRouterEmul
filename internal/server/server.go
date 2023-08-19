@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/Vasiliy82/PoolingRouterEmul/internal/config"
-
-	"github.com/labstack/echo/v4"
+	"github.com/Vasiliy82/PoolingRouterEmul/internal/logger"
 )
 
 const (
@@ -15,25 +14,31 @@ const (
 )
 
 type Server struct {
-	cfg  *config.App
-	echo *echo.Echo
+	cfg *config.Server
 }
 
-func NewServer(cfg *config.App) *Server {
+func NewServer(cfg *config.Server) *Server {
 	return &Server{
 		cfg: cfg,
-		echo: echo.New()
 	}
 }
 
-func (s *Server) Run() error {
+func (s *Server) Run(handler http.Handler) error {
 
-	server := &http.Server{
+	httpServer := &http.Server{
 		Addr:           s.cfg.Port,
+		Handler:        handler,
 		ReadTimeout:    time.Second * s.cfg.ReadTimeout,
 		WriteTimeout:   time.Second * s.cfg.WriteTimeout,
 		MaxHeaderBytes: maxHeaderBytes,
 	}
+
+	go func() {
+		logger.Logger().Infof("Запуск HTTP сервера на порту %s", s.cfg.Port)
+		if err := httpServer.ListenAndServe(); err != nil {
+			logger.Logger().Fatalf("Ошибка запуска HTTP сервера: %v", err)
+		}
+	}()
 
 	return nil
 
